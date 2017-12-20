@@ -60,12 +60,14 @@ module Formula (Clause, Dimacs ) where
     setTrue _ [] = []
     setTrue l (x:xs)
         | (contains l x)     = setTrue l xs
+        | ((contains (-l) x) && (length x == 1)) = [[0]]
         | (contains (-l) x)  = (remove (-l) x):(setTrue l xs)
 
 
     setFalse :: Litteral -> Clauses -> Clauses
     setFalse _ [] = []
     setFalse l (x:xs)
+        | ((contains l x) && (length x == 1)) = [[0]]
         | (contains l x)     = (remove (l) x):(setFalse l xs)
         | (contains (-l) x)  = setFalse l xs 
 
@@ -99,6 +101,20 @@ module Formula (Clause, Dimacs ) where
                 return c
 
     
+    hornSat :: Clauses -> Int -> Model -> IO Model
+    hornSat c n m = do
+
+        v <- toIo (findPositiveVar c)
+
+        if v /= Nothing then
+            do
+                m <- toIo (set 1 m ((justAToA v)-1))
+                c <- toIo (setTrue (justAToA v) c)
+                hornSat c n m
+        else 
+            do
+                return m
+         
 
     myFormula = getFormula "formula.fnc" "horn"
     unitaryFormula = getFormula "formula_unitary_clause.fnc" "horn"

@@ -3,7 +3,9 @@ module Utils (
     remove,
     findUnitaryList,
     justAToA,
-    toIo
+    toIo,
+    findPositiveVar,
+    set
 ) where
 
     import System.IO.Unsafe
@@ -35,3 +37,27 @@ module Utils (
 
     fromIo :: IO a -> a
     fromIo a = unsafePerformIO a
+
+    emptyClause :: [[a]] -> Bool
+    emptyClause [] = False
+    emptyClause (x:xs)
+        |(length x) == 0 = True
+        |otherwise = emptyClause xs
+
+
+    positivesVars :: [Int] -> Maybe Int
+    positivesVars [] = Nothing
+    positivesVars (x:xs)
+        | (x > 0) = Just x
+        | otherwise = positivesVars xs
+
+    findPositiveVar :: [[Int]] -> Maybe Int
+    findPositiveVar [] = Nothing
+    findPositiveVar (x:xs)
+        | (positivesVars x) /= Nothing = positivesVars x
+        | otherwise = findPositiveVar xs
+
+
+    set :: a -> [a] -> Int -> [a]
+    set e xs i = (take i xs) ++ [e] ++ (drop (i+1) xs)
+
