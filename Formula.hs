@@ -1,4 +1,16 @@
-module Formula (Clause, Dimacs ) where
+module Formula (
+    Clause, 
+    Dimacs,
+    Type,
+    Litteral,
+    Clauses,
+    Model,
+    Solver,
+    Formula ( .. ),
+    getFormula,
+    solve,
+    myFormula
+) where
 
     import Utils
 
@@ -13,12 +25,29 @@ module Formula (Clause, Dimacs ) where
     type Clauses  = [Clause]
     type Model    = [Int]    
 
+    type Solver   = (Clauses -> Int -> Model -> IO Model)
+
     data Formula = Formula {
         typeFormula :: String, 
         nbClauses   :: Int,
         nbVars      :: Int,
         clauses     :: Clauses		 
     }
+
+    typesList :: [String]
+    typesList = ["horn", "krom", "3sat", "sat"]
+
+    typeValid :: String -> Bool
+    typeValid t = contains t typesList
+
+    emptyClause :: Clauses -> Bool
+    emptyClause [[-1]] = True
+    emptyClause _ = False
+
+    getSolver :: Formula -> Solver
+    getSolver f 
+        | (typeFormula f) == "horn" = hornSat
+
 
     readDimacs :: FilePath -> Dimacs
     readDimacs f = splitOn "\n" (unsafePerformIO (readFile f))
@@ -60,14 +89,14 @@ module Formula (Clause, Dimacs ) where
     setTrue _ [] = []
     setTrue l (x:xs)
         | (contains l x)     = setTrue l xs
-        | ((contains (-l) x) && (length x == 1)) = [[0]]
+        | ((contains (-l) x) && (length x == 1)) = [[-1]]
         | (contains (-l) x)  = (remove (-l) x):(setTrue l xs)
 
 
     setFalse :: Litteral -> Clauses -> Clauses
     setFalse _ [] = []
     setFalse l (x:xs)
-        | ((contains l x) && (length x == 1)) = [[0]]
+        | ((contains l x) && (length x == 1)) = [[-1]]
         | (contains l x)     = (remove (l) x):(setFalse l xs)
         | (contains (-l) x)  = setFalse l xs 
 
@@ -101,7 +130,7 @@ module Formula (Clause, Dimacs ) where
                 return c
 
     
-    hornSat :: Clauses -> Int -> Model -> IO Model
+    hornSat :: Solver
     hornSat c n m = do
 
         v <- toIo (findPositiveVar c)
@@ -110,11 +139,37 @@ module Formula (Clause, Dimacs ) where
             do
                 m <- toIo (set 1 m ((justAToA v)-1))
                 c <- toIo (setTrue (justAToA v) c)
-                hornSat c n m
+                if (emptyClause c) == True then
+                    do
+                        return [-1]
+                else 
+                    do
+                        hornSat c n m
         else 
             do
                 return m
          
+
+    kromSat :: Solver
+    kromSat c n m = do
+        c <- unitPropagation c
+        return m
+
+
+    solve :: Formula -> IO Model
+    solve f = do
+
+        if (typeValid (typeFormula f) == True) then
+            do
+                s <- toIo (getSolver f)        
+                m <- (s (clauses f) (nbVars f) (replicate (nbVars f) 0))
+                return m
+        else
+            do
+                m <- toIo([0])
+                return m
+
+
 
     myFormula = getFormula "formula.fnc" "horn"
     unitaryFormula = getFormula "formula_unitary_clause.fnc" "horn"

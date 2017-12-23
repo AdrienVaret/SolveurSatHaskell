@@ -4,11 +4,16 @@ module Utils (
     findUnitaryList,
     justAToA,
     toIo,
+    fromIo,
     findPositiveVar,
-    set
+    set,
+    rightAToA,
+    printf,
+    printfln
 ) where
 
     import System.IO.Unsafe
+    import System.IO
 
     contains :: Eq a => a -> [a] -> Bool
     contains _ [] = False
@@ -48,7 +53,7 @@ module Utils (
     positivesVars :: [Int] -> Maybe Int
     positivesVars [] = Nothing
     positivesVars (x:xs)
-        | (x > 0) = Just x
+        | (x > 0) && ((length (x:xs)) == 1) = Just x
         | otherwise = positivesVars xs
 
     findPositiveVar :: [[Int]] -> Maybe Int
@@ -61,3 +66,18 @@ module Utils (
     set :: a -> [a] -> Int -> [a]
     set e xs i = (take i xs) ++ [e] ++ (drop (i+1) xs)
 
+    rightAToA :: Either b a -> a
+    rightAToA (Right a) = a
+
+    flush :: IO()
+    flush = hFlush stdout
+
+    printf :: String -> IO()
+    printf string = do
+        putStr string
+        flush
+
+    printfln :: String -> IO()
+    printfln string = do
+        putStrLn string
+        flush
